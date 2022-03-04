@@ -1,8 +1,10 @@
 import os
+import time
 
 import pandas as pd
 from functools import reduce
 import json
+import logging
 
 data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
@@ -10,8 +12,16 @@ if not os.path.exists(data_path):
     os.mkdir(data_path)
 if not os.path.exists(output_path):
     os.mkdir(output_path)
-print(data_path)
-print(output_path)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("interlist_final")
+handler1 = logging.FileHandler("base-log.log")
+handler1.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s|%(name)-12s+ %(levelname)-8s++%(message)s')
+handler1.setFormatter(formatter)
+logger.addHandler(handler1)
+
+logger.info(data_path)
+logger.info(output_path)
 user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',
                        header=0)
 df1 = user_act.drop(labels=['id',
@@ -54,7 +64,7 @@ gbr = df1.groupby('user_id')  # 用分组函数groupby()进行数据的分组，
 df_neg = df1[df1['follow'] == 'neg']
 df_pos = df1[df1['follow'] != 'neg']
 
-print('-' * 5 + 'process sample' + '-' * 5)
+logger.info('-' * 5 + 'process sample' + '-' * 5)
 
 df_pos.drop_duplicates(subset=['user_id', 'content_id', 'follow'], keep='last', inplace=True)
 df_neg.drop_duplicates(subset=['user_id', 'content_id'], keep='last', inplace=True)
@@ -97,10 +107,12 @@ df_final['rep'] = df_final[df_final['follow'] != 'neg'].duplicated(subset=['user
 
 df_final['rep'] = df_final['rep'].fillna(False)
 
-print('-' * 5 + 'process count comment etc' + '-' * 5)
+logger.info('-' * 5 + 'process count comment etc' + '-' * 5)
+
+start = time.time()
 
 
-def de_duplicate_comment(flag, user_id, desc, row):
+def de_duplicate_comment(flag, user_id, desc):
     if flag is True:
         comment = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'comment'].sum()
         return min(comment, 1)
@@ -108,7 +120,7 @@ def de_duplicate_comment(flag, user_id, desc, row):
         return 0
 
 
-def de_duplicate_forward(flag, user_id, desc, row):
+def de_duplicate_forward(flag, user_id, desc):
     if flag is True:
         forward = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'forward'].sum()
         return min(forward, 1)
@@ -116,7 +128,7 @@ def de_duplicate_forward(flag, user_id, desc, row):
         return 0
 
 
-def de_duplicate_thumb(flag, user_id, desc, row):
+def de_duplicate_thumb(flag, user_id, desc):
     if flag is True:
         thumb = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'thumb'].sum()
         return min(thumb, 1)
@@ -124,7 +136,7 @@ def de_duplicate_thumb(flag, user_id, desc, row):
         return 0
 
 
-def de_duplicate_detail(flag, user_id, desc, row):
+def de_duplicate_detail(flag, user_id, desc):
     if flag is True:
         detail = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'detail'].sum()
         return min(detail, 1)
@@ -133,14 +145,15 @@ def de_duplicate_detail(flag, user_id, desc, row):
 
 
 df_final['comment'] = df_final.apply(
-    lambda row: de_duplicate_comment(row['rep'], row['user_id'], row['desc'], row), axis=1)
+    lambda row: de_duplicate_comment(row['rep'], row['user_id'], row['desc']), axis=1)
 df_final['forward'] = df_final.apply(
-    lambda row: de_duplicate_forward(row['rep'], row['user_id'], row['desc'], row), axis=1)
+    lambda row: de_duplicate_forward(row['rep'], row['user_id'], row['desc']), axis=1)
 df_final['thumb'] = df_final.apply(
-    lambda row: de_duplicate_thumb(row['rep'], row['user_id'], row['desc'], row), axis=1)
+    lambda row: de_duplicate_thumb(row['rep'], row['user_id'], row['desc']), axis=1)
 df_final['detail'] = df_final.apply(
-    lambda row: de_duplicate_detail(row['rep'], row['user_id'], row['desc'], row), axis=1)
-
+    lambda row: de_duplicate_detail(row['rep'], row['user_id'], row['desc']), axis=1)
+end = time.time()
+logger.info('count cost' + str(end - start))
 df_final_pos = df_final[df_final['follow'] != 'neg']
 df_final_pos.drop_duplicates(subset=['user_id', 'desc'], keep='last', inplace=True)
 
@@ -150,7 +163,7 @@ df_finalf = pd.concat([df_final_pos, df_final_neg])
 df_finalf.sort_values(by=['user_id', 'created_at'], ascending=True)
 
 df_finalf.drop(labels=['follow', 'created_at', 'rep'], axis=1, inplace=True)
-print('-' * 5 + 'process data type' + '-' * 5)
+logger.info('-' * 5 + 'process data type' + '-' * 5)
 
 df_finalf['topic_id'] = df_finalf['topic_id'].fillna('0').astype('int64')
 df_finalf['genre_id'] = df_finalf['genre_id'].fillna('0').astype('int64')
@@ -174,7 +187,7 @@ df2 = df1[df1['follow'] != 'neg']
 # df2[df2['user_id']==1633329256893853]
 
 
-print('-' * 5 + 'process content list' + '-' * 5)
+logger.info('-' * 5 + 'process content list' + '-' * 5)
 df2['content_list'] = pd.NA
 
 
@@ -200,7 +213,7 @@ df2['content_num'] = df2['content_list'].apply(lent)
 df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
 df_inter1 = pd.merge(df_finalf, df2, on='user_id', how='left')
 
-print('-' * 5 + 'process split' + '-' * 5)
+logger.info('-' * 5 + 'process split' + '-' * 5)
 bt1 = df_inter1[df_inter1['content_num'] > 1]
 bt2 = df_inter1[df_inter1['content_num'] > 2]
 bt3 = df_inter1[df_inter1['content_num'] > 3]
@@ -266,7 +279,7 @@ train_bt5 = train_bt5.drop(train_bt5[train_bt5['user_id'] == train_bt5.iloc[-1][
 dev_bt5 = dev_bt5.drop(dev_bt5[dev_bt5['user_id'] == dev_bt5.iloc[0]['user_id']].index)
 test_bt5 = test_bt5.drop(test_bt5[test_bt5['user_id'] == test_bt5.iloc[0]['user_id']].index)
 
-print('-' * 5 + 'export' + '-' * 5)
+logger.info('-' * 5 + 'export' + '-' * 5)
 train_bt1.to_csv(os.path.join(output_path, 'bt1', 'train.txt'), sep='\t', encoding='utf-8', index=False)
 dev_bt1.to_csv(os.path.join(output_path, 'bt1', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
 test_bt1.to_csv(os.path.join(output_path, 'bt1', 'test.txt'), sep='\t', encoding='utf-8', index=False)
