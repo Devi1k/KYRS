@@ -1,9 +1,19 @@
+import os
+
 import pandas as pd
 import warnings
 
+data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
+if not os.path.exists(data_path):
+    os.mkdir(data_path)
+if not os.path.exists(output_path):
+    os.mkdir(output_path)
+print(data_path)
+print(output_path)
 warnings.filterwarnings("ignore")
-content = pd.read_csv('../data/帖子.csv', sep=',', error_bad_lines=False, encoding='utf-8', header=0)
-topic = pd.read_csv('../data/话题.csv', sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 content.rename(columns={'subject_id': 'topic_id'}, inplace=True)
 
 concat = pd.merge(content, topic, on='topic_id', how='left')
@@ -66,7 +76,7 @@ df['topic_praise_count'] = df.apply(lambda row: count_praise(row['topic_id']), a
 df['topic_reply_count'] = df.apply(lambda row: count_reply(row['topic_id']), axis=1)
 df['topic_forward_count'] = df.apply(lambda row: count_forward(row['topic_id']), axis=1)
 print('-' * 5 + 'process event_id' + '-' * 5)
-user_act = pd.read_csv('../data/user_action.csv', sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+user_act = pd.read_csv(os.path.join(data_path,'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 df3 = user_act.drop(labels=['id',
                             'device_id', 'os', 'os_version', 'version', 'system', 'platform', 'pg_short_url',
                             'log_time', 'cal_dt', 'duration', 'log_id'], axis=1)
@@ -127,11 +137,11 @@ def count_inter_list(content_id):
 
 df4['inter_list'] = df4.apply(lambda row: count_inter_list(row['content_id']), axis=1)
 df4.drop_duplicates(subset=['content_id'], keep='first', inplace=True)
-df4 = df4.drop(labels=['event_id', 'event_data', 'follow', 'user_id', 'rep', 'created_at'], axis=1)
+df4 = df4.drop(labels=['event_id', 'event_data', 'follow', 'user_id', 'created_at'], axis=1)
 # df = df.drop(labels=['rep'], axis=1)
 
-df4.to_csv('data/inter_list.txt', sep='\t', encoding='utf-8', index=False)
-df.to_csv('data/content_raw.txt', sep='\t', encoding='utf-8', index=False)
+# df4.to_csv('../data/inter_list.txt', sep='\t', encoding='utf-8', index=False)
+# df.to_csv('../data/content_raw.txt', sep='\t', encoding='utf-8', index=False)
 
 # df6 = pd.merge(df, df4, on='content_id', how='left')
 
@@ -139,7 +149,7 @@ print('-' * 5 + 'process merge' + '-' * 5)
 df_filter = df4[df4['content_id'] != 0]
 df7 = pd.merge(df, df_filter, on='content_id', how='left')
 df8 = df7.drop_duplicates(subset=['content_id'], keep='first')
-df8.to_csv('dataset/content.txt', sep='\t', encoding='utf-8', index=False)
+df8.to_csv(os.path.join(output_path,'content.txt'), sep='\t', encoding='utf-8', index=False)
 
 typedict = {'user_id': int, 'content_id': int, 'desc': object, 'topic_id': int, 'genre_id': int,
             'introduction': object, 'comment': int, 'forward': int, 'thumb': int, 'detail': int, 'neg': int,

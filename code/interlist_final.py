@@ -1,9 +1,19 @@
+import os
 
 import pandas as pd
 from functools import reduce
+import json
 
-
-user_act = pd.read_csv("../data/user_action.csv", sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
+if not os.path.exists(data_path):
+    os.mkdir(data_path)
+if not os.path.exists(output_path):
+    os.mkdir(output_path)
+print(data_path)
+print(output_path)
+user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',
+                       header=0)
 df1 = user_act.drop(labels=['id',
                             'device_id', 'os', 'os_version', 'version', 'system', 'platform', 'pg_short_url',
                             'log_time', 'cal_dt', 'duration', 'log_id'], axis=1)
@@ -16,7 +26,6 @@ df1['follow'] = df1['follow'].fillna(0)
 # user_new['follow'] = user_new['follow'].fillna(0)
 df1['follow'] = df1['follow'].replace(0, 'neg')
 df1['follow'].value_counts()
-import json
 
 # df1['content_id'] = df1.loc[(df1.event_id != 221), 'event_data']
 df1['event_data'] = df1['event_data'].apply(json.loads)
@@ -37,19 +46,19 @@ df1['content_id'] = df1['event_data']
 
 df1 = df1.sort_values(by=['user_id', 'created_at'], ascending=True)
 
-content = pd.read_csv('../data/帖子.csv', sep=',', error_bad_lines=False, encoding='utf-8', header=0)
-topic = pd.read_csv('../data/话题.csv', sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 
 gbr = df1.groupby('user_id')  # 用分组函数groupby()进行数据的分组，分组依据为'TYPE'这一属性
 
 df_neg = df1[df1['follow'] == 'neg']
 df_pos = df1[df1['follow'] != 'neg']
 
+print('-' * 5 + 'process sample' + '-' * 5)
 
 df_pos.drop_duplicates(subset=['user_id', 'content_id', 'follow'], keep='last', inplace=True)
 df_neg.drop_duplicates(subset=['user_id', 'content_id'], keep='last', inplace=True)
 df_dic = df_neg['user_id'].value_counts().to_dict()
-
 
 ratio = len(df_pos) / len(df_neg)
 df_sample = dict()
@@ -58,6 +67,7 @@ for key, value in df_dic.items():
     v = round(value * ratio)
     df_sample[key] = v
     sum += v
+
 
 def typicalsamling(group, typicalNDict):
     name = group.name
@@ -83,12 +93,11 @@ df_final = df_final[
     ['user_id', 'topic_id', 'desc', 'genre_id', 'introduction', 'comment', 'forward', 'thumb', 'detail', 'neg',
      'follow', 'created_at']]
 
-
 df_final['rep'] = df_final[df_final['follow'] != 'neg'].duplicated(subset=['user_id', 'desc'], keep=False)
 
 df_final['rep'] = df_final['rep'].fillna(False)
 
-
+print('-' * 5 + 'process count comment etc' + '-' * 5)
 
 
 def de_duplicate_comment(flag, user_id, desc, row):
@@ -132,7 +141,6 @@ df_final['thumb'] = df_final.apply(
 df_final['detail'] = df_final.apply(
     lambda row: de_duplicate_detail(row['rep'], row['user_id'], row['desc'], row), axis=1)
 
-
 df_final_pos = df_final[df_final['follow'] != 'neg']
 df_final_pos.drop_duplicates(subset=['user_id', 'desc'], keep='last', inplace=True)
 
@@ -142,6 +150,7 @@ df_finalf = pd.concat([df_final_pos, df_final_neg])
 df_finalf.sort_values(by=['user_id', 'created_at'], ascending=True)
 
 df_finalf.drop(labels=['follow', 'created_at', 'rep'], axis=1, inplace=True)
+print('-' * 5 + 'process data type' + '-' * 5)
 
 df_finalf['topic_id'] = df_finalf['topic_id'].fillna('0').astype('int64')
 df_finalf['genre_id'] = df_finalf['genre_id'].fillna('0').astype('int64')
@@ -149,6 +158,8 @@ df_finalf['comment'] = df_finalf['comment'].fillna('0').astype('int64')
 df_finalf['forward'] = df_finalf['forward'].fillna('0').astype('int64')
 df_finalf['thumb'] = df_finalf['thumb'].fillna('0').astype('int64')
 df_finalf['detail'] = df_finalf['detail'].fillna('0').astype('int64')
+
+
 def process1(desc):
     try:
         return desc.replace('\n', '').replace('\r', '').replace(' ', '')
@@ -187,9 +198,7 @@ def lent(data):
 df2['content_num'] = df2['content_list'].apply(lent)
 
 df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
-df_inter1 = pd.merge(df_finalf,df2,on='user_id',how='left')
-
-
+df_inter1 = pd.merge(df_finalf, df2, on='user_id', how='left')
 
 print('-' * 5 + 'process split' + '-' * 5)
 bt1 = df_inter1[df_inter1['content_num'] > 1]
@@ -198,14 +207,11 @@ bt3 = df_inter1[df_inter1['content_num'] > 3]
 bt4 = df_inter1[df_inter1['content_num'] > 4]
 bt5 = df_inter1[df_inter1['content_num'] > 5]
 
-bt1.to_csv('../dataset/bt1.txt', sep='\t', encoding='utf-8', index=False)
-bt2.to_csv('../dataset/bt2.txt', sep='\t', encoding='utf-8', index=False)
-bt3.to_csv('../dataset/bt3.txt', sep='\t', encoding='utf-8', index=False)
-bt4.to_csv('../dataset/bt4.txt', sep='\t', encoding='utf-8', index=False)
-bt5.to_csv('../dataset/bt5.txt', sep='\t', encoding='utf-8', index=False)
-
-
-
+bt1.to_csv(os.path.join(output_path, 'bt1.txt'), sep='\t', encoding='utf-8', index=False)
+bt2.to_csv(os.path.join(output_path, 'bt2.txt'), sep='\t', encoding='utf-8', index=False)
+bt3.to_csv(os.path.join(output_path, 'bt3.txt'), sep='\t', encoding='utf-8', index=False)
+bt4.to_csv(os.path.join(output_path, 'bt4.txt'), sep='\t', encoding='utf-8', index=False)
+bt5.to_csv(os.path.join(output_path, 'bt5.txt'), sep='\t', encoding='utf-8', index=False)
 
 df3 = df2.drop_duplicates(subset=['user_id'], keep='first')
 
@@ -230,43 +236,53 @@ def split_dataset(data):
     return train, dev, test
 
 
+train_list = []
+dev_list = []
+test_list = []
+
 train_bt1, dev_bt1, test_bt1 = split_dataset(bt1)
+train_bt2, dev_bt2, test_bt2 = split_dataset(bt2)
+train_bt3, dev_bt3, test_bt3 = split_dataset(bt3)
+train_bt4, dev_bt4, test_bt4 = split_dataset(bt4)
+train_bt5, dev_bt5, test_bt5 = split_dataset(bt5)
+
 train_bt1 = train_bt1.drop(train_bt1[train_bt1['user_id'] == train_bt1.iloc[-1]['user_id']].index)
 dev_bt1 = dev_bt1.drop(dev_bt1[dev_bt1['user_id'] == dev_bt1.iloc[0]['user_id']].index)
 test_bt1 = test_bt1.drop(test_bt1[test_bt1['user_id'] == test_bt1.iloc[0]['user_id']].index)
 
-train_bt2, dev_bt2, test_bt2 = split_dataset(bt2)
 train_bt2 = train_bt2.drop(train_bt2[train_bt2['user_id'] == train_bt2.iloc[-1]['user_id']].index)
 dev_bt2 = dev_bt2.drop(dev_bt2[dev_bt2['user_id'] == dev_bt2.iloc[0]['user_id']].index)
 test_bt2 = test_bt2.drop(test_bt2[test_bt2['user_id'] == test_bt2.iloc[0]['user_id']].index)
 
-train_bt3, dev_bt3, test_bt3 = split_dataset(bt3)
 train_bt3 = train_bt3.drop(train_bt3[train_bt3['user_id'] == train_bt3.iloc[-1]['user_id']].index)
 dev_bt3 = dev_bt3.drop(dev_bt3[dev_bt3['user_id'] == dev_bt3.iloc[0]['user_id']].index)
 test_bt3 = test_bt3.drop(test_bt3[test_bt3['user_id'] == test_bt3.iloc[0]['user_id']].index)
 
-train_bt4, dev_bt4, test_bt4 = split_dataset(bt4)
 train_bt4 = train_bt4.drop(train_bt4[train_bt4['user_id'] == train_bt4.iloc[-1]['user_id']].index)
 dev_bt4 = dev_bt4.drop(dev_bt4[dev_bt4['user_id'] == dev_bt4.iloc[0]['user_id']].index)
 test_bt4 = test_bt4.drop(test_bt4[test_bt4['user_id'] == test_bt4.iloc[0]['user_id']].index)
 
-train_bt5, dev_bt5, test_bt5 = split_dataset(bt5)
 train_bt5 = train_bt5.drop(train_bt5[train_bt5['user_id'] == train_bt5.iloc[-1]['user_id']].index)
 dev_bt5 = dev_bt5.drop(dev_bt5[dev_bt5['user_id'] == dev_bt5.iloc[0]['user_id']].index)
 test_bt5 = test_bt5.drop(test_bt5[test_bt5['user_id'] == test_bt5.iloc[0]['user_id']].index)
 
-train_bt1.to_csv('../dataset/bt1/train.txt', sep='\t', encoding='utf-8', index=False)
-dev_bt1.to_csv('../dataset/bt1/dev.txt', sep='\t', encoding='utf-8', index=False)
-test_bt1.to_csv('../dataset/bt1/test.txt', sep='\t', encoding='utf-8', index=False)
-train_bt2.to_csv('../dataset/bt2/train.txt', sep='\t', encoding='utf-8', index=False)
-dev_bt2.to_csv('../dataset/bt2/dev.txt', sep='\t', encoding='utf-8', index=False)
-test_bt2.to_csv('../dataset/bt2/test.txt', sep='\t', encoding='utf-8', index=False)
-train_bt3.to_csv('../dataset/bt3/train.txt', sep='\t', encoding='utf-8', index=False)
-dev_bt3.to_csv('../dataset/bt3/dev.txt', sep='\t', encoding='utf-8', index=False)
-test_bt3.to_csv('../dataset/bt3/test.txt', sep='\t', encoding='utf-8', index=False)
-train_bt4.to_csv('../dataset/bt4/train.txt', sep='\t', encoding='utf-8', index=False)
-dev_bt4.to_csv('../dataset/bt4/dev.txt', sep='\t', encoding='utf-8', index=False)
-test_bt4.to_csv('../dataset/bt4/test.txt', sep='\t', encoding='utf-8', index=False)
-train_bt5.to_csv('../dataset/bt5/train.txt', sep='\t', encoding='utf-8', index=False)
-dev_bt5.to_csv('../dataset/bt5/dev.txt', sep='\t', encoding='utf-8', index=False)
-test_bt5.to_csv('../dataset/bt5/test.txt', sep='\t', encoding='utf-8', index=False)
+print('-' * 5 + 'export' + '-' * 5)
+train_bt1.to_csv(os.path.join(output_path, 'bt1', 'train.txt'), sep='\t', encoding='utf-8', index=False)
+dev_bt1.to_csv(os.path.join(output_path, 'bt1', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
+test_bt1.to_csv(os.path.join(output_path, 'bt1', 'test.txt'), sep='\t', encoding='utf-8', index=False)
+
+train_bt2.to_csv(os.path.join(output_path, 'bt2', 'train.txt'), sep='\t', encoding='utf-8', index=False)
+dev_bt2.to_csv(os.path.join(output_path, 'bt2', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
+test_bt2.to_csv(os.path.join(output_path, 'bt2', 'test.txt'), sep='\t', encoding='utf-8', index=False)
+
+train_bt3.to_csv(os.path.join(output_path, 'bt3', 'train.txt'), sep='\t', encoding='utf-8', index=False)
+dev_bt3.to_csv(os.path.join(output_path, 'bt3', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
+test_bt3.to_csv(os.path.join(output_path, 'bt3', 'test.txt'), sep='\t', encoding='utf-8', index=False)
+
+train_bt4.to_csv(os.path.join(output_path, 'bt4', 'train.txt'), sep='\t', encoding='utf-8', index=False)
+dev_bt4.to_csv(os.path.join(output_path, 'bt4', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
+test_bt4.to_csv(os.path.join(output_path, 'bt4', 'test.txt'), sep='\t', encoding='utf-8', index=False)
+
+train_bt5.to_csv(os.path.join(output_path, 'bt5', 'train.txt'), sep='\t', encoding='utf-8', index=False)
+dev_bt5.to_csv(os.path.join(output_path, 'bt5', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
+test_bt5.to_csv(os.path.join(output_path, 'bt5', 'test.txt'), sep='\t', encoding='utf-8', index=False)
