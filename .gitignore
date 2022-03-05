@@ -5,3 +5,8 @@
 /data/用户.csv
 /data/话题.csv
 /data/评论.csv
+/dataset/content.txt
+/dataset/content_raw.txt
+/dataset/content_with_interlist.txt
+/dataset/content_with_topiccnt.txt
+/dataset/inter_list.txt

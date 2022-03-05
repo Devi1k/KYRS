@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 
@@ -97,8 +98,10 @@ topic = topic[['topic_id', 'genre_id', 'introduction']]
 add_content = pd.merge(result, content, on='content_id', how='left')
 add_topic = pd.merge(add_content, topic, on='topic_id', how='left')
 
-df_final = add_topic.join(pd.get_dummies(add_topic.follow))
 
+df_final = add_topic.join(pd.get_dummies(add_topic.follow))
+del add_content, add_topic, content, topic, df_neg_sample, df_neg, df_pos, result
+gc.collect()
 df_final = df_final[
     ['user_id', 'topic_id', 'desc', 'genre_id', 'introduction', 'comment', 'forward', 'thumb', 'detail', 'neg',
      'follow', 'created_at']]
@@ -107,8 +110,6 @@ df_final['rep'] = df_final[df_final['follow'] != 'neg'].duplicated(subset=['user
 
 df_final['rep'] = df_final['rep'].fillna(False)
 
-logger.info('-' * 5 + 'process count comment etc' + '-' * 5)
-
 start = time.time()
 
 
@@ -116,40 +117,43 @@ def de_duplicate_comment(flag, user_id, desc):
     if flag is True:
         comment = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'comment'].sum()
         return min(comment, 1)
-    else:
-        return 0
+
 
 
 def de_duplicate_forward(flag, user_id, desc):
     if flag is True:
         forward = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'forward'].sum()
         return min(forward, 1)
-    else:
-        return 0
+
 
 
 def de_duplicate_thumb(flag, user_id, desc):
     if flag is True:
         thumb = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'thumb'].sum()
         return min(thumb, 1)
-    else:
-        return 0
+
 
 
 def de_duplicate_detail(flag, user_id, desc):
     if flag is True:
         detail = df_final.loc[((df_final.user_id == user_id) & (df_final.desc == desc)), 'detail'].sum()
         return min(detail, 1)
-    else:
-        return 0
 
+
+logger.info('-' * 5 + 'process comment' + '-' * 5)
 
 df_final['comment'] = df_final.apply(
     lambda row: de_duplicate_comment(row['rep'], row['user_id'], row['desc']), axis=1)
+logger.info('-' * 5 + 'process forward' + '-' * 5)
+
 df_final['forward'] = df_final.apply(
     lambda row: de_duplicate_forward(row['rep'], row['user_id'], row['desc']), axis=1)
+logger.info('-' * 5 + 'process thumb' + '-' * 5)
+
 df_final['thumb'] = df_final.apply(
     lambda row: de_duplicate_thumb(row['rep'], row['user_id'], row['desc']), axis=1)
+logger.info('-' * 5 + 'process detail' + '-' * 5)
+
 df_final['detail'] = df_final.apply(
     lambda row: de_duplicate_detail(row['rep'], row['user_id'], row['desc']), axis=1)
 end = time.time()
@@ -211,8 +215,14 @@ def lent(data):
 df2['content_num'] = df2['content_list'].apply(lent)
 
 df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
-df_inter1 = pd.merge(df_finalf, df2, on='user_id', how='left')
 
+logger.info(df_finalf.dtypes)
+logger.info(df2.dtypes)
+df_finalf.to_csv(os.path.join(output_path, 'content_with_topiccnt.txt'), sep='\t', encoding='utf-8', index=False)
+df2.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
+df_inter1 = pd.merge(df_finalf, df2, on='user_id', how='left')
+del df_final, df_finalf, df_final_neg, df_final_pos
+gc.collect()
 logger.info('-' * 5 + 'process split' + '-' * 5)
 bt1 = df_inter1[df_inter1['content_num'] > 1]
 bt2 = df_inter1[df_inter1['content_num'] > 2]
@@ -229,7 +239,8 @@ bt5.to_csv(os.path.join(output_path, 'bt5.txt'), sep='\t', encoding='utf-8', ind
 df3 = df2.drop_duplicates(subset=['user_id'], keep='first')
 
 df4 = df3.drop(labels=['event_id', 'event_data', 'follow', 'content_id', 'rep', 'created_at'], axis=1)
-
+del df2,df3
+gc.collect()
 
 def split_dataset(data):
     train_ratio = 0.8
