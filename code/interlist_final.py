@@ -216,18 +216,20 @@ def lent(data):
         return 0
 
 
-df2['content_num'] = df2['content_list'].apply(lent)
 
 df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
+df2['content_num'] = df2['content_list'].apply(lent)
+
 df2_ = df2[['user_id', 'content_list', 'content_num']]
 logger.info(df_finalf.dtypes)
-logger.info(df2.dtypes)
+logger.info(df2_.dtypes)
 df_finalf.to_csv(os.path.join(output_path, 'content_with_topiccnt.txt'), sep='\t', encoding='utf-8', index=False)
 df2_.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
 
 df_inter1 = pd.merge(df_finalf, df2, on='user_id', how='left')
 del df_final, df_finalf, df_final_neg, df_final_pos, df2, df2_
 gc.collect()
+logger.info(df_inter1.dtypes)
 logger.info('-' * 5 + 'process split' + '-' * 5)
 bt1 = df_inter1[df_inter1['content_num'] > 1]
 bt2 = df_inter1[df_inter1['content_num'] > 2]
@@ -241,11 +243,7 @@ bt3.to_csv(os.path.join(output_path, 'bt3.txt'), sep='\t', encoding='utf-8', ind
 bt4.to_csv(os.path.join(output_path, 'bt4.txt'), sep='\t', encoding='utf-8', index=False)
 bt5.to_csv(os.path.join(output_path, 'bt5.txt'), sep='\t', encoding='utf-8', index=False)
 
-df3 = df2.drop_duplicates(subset=['user_id'], keep='first')
 
-df4 = df3.drop(labels=['event_id', 'event_data', 'follow', 'content_id', 'rep', 'created_at'], axis=1)
-del df2, df3
-gc.collect()
 
 
 def split_dataset(data):
@@ -261,8 +259,9 @@ def split_dataset(data):
         labels=['content_list', 'content_num'], axis=1)
     test = data[train_length + dev_length:]
     test = test.drop(
-        labels=['content_id', 'desc', 'topic_id', 'genre_id', 'introduction', 'comment', 'forward', 'thumb', 'detail',
-                'neg', 'created_at', 'content_num'], axis=1)
+        labels=['desc', 'topic_id', 'genre_id', 'introduction', 'comment', 'forward', 'thumb', 'detail',
+                'neg',  'content_num'], axis=1)
+    test.drop_duplicates(subset=['user_id'],inplace=True)
     return train, dev, test
 
 
