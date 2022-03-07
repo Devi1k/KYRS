@@ -1,11 +1,11 @@
 import gc
-import os
-import time
-
-import pandas as pd
-from functools import reduce
 import json
 import logging
+import os
+import time
+from functools import reduce
+
+import pandas as pd
 
 data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
@@ -216,21 +216,21 @@ def lent(data):
         return 0
 
 
-
 df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
 df2['content_num'] = df2['content_list'].apply(lent)
 
 df2_ = df2[['user_id', 'content_list', 'content_num']]
-logger.info(df_finalf.dtypes)
-logger.info(df2_.dtypes)
+
 df_finalf.to_csv(os.path.join(output_path, 'content_with_topiccnt.txt'), sep='\t', encoding='utf-8', index=False)
 df2_.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
+logger.info(df_finalf.dtypes)
+logger.info(df2_.dtypes)
+logger.info('-' * 5 + 'process merge & split' + '-' * 5)
 
-df_inter1 = pd.merge(df_finalf, df2, on='user_id', how='left')
-del df_final, df_finalf, df_final_neg, df_final_pos, df2, df2_
+df_inter1 = pd.merge(df_finalf, df2_, on='user_id', how='left')
+del df_final, df_final_neg, df_final_pos, df2
 gc.collect()
 logger.info(df_inter1.dtypes)
-logger.info('-' * 5 + 'process split' + '-' * 5)
 bt1 = df_inter1[df_inter1['content_num'] > 1]
 bt2 = df_inter1[df_inter1['content_num'] > 2]
 bt3 = df_inter1[df_inter1['content_num'] > 3]

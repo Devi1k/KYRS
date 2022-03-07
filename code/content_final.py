@@ -1,11 +1,11 @@
 import gc
+import json
+import logging
 import os
+import warnings
+from functools import reduce
 
 import pandas as pd
-import warnings
-import logging
-import json
-from functools import reduce
 
 data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
@@ -37,12 +37,12 @@ df1 = concat.drop(['group_id', 'user_id', 'type', 'topic_type',
                    'top_time', 'weight_x', 'week_weight', 'month_weight', 'hot_weight',
                    'is_show', 'is_plan', 'biz_content', 'online_time_x', 'pick_time',
                    'weight_json', 'anonymous', 'link_topic_id', 'linked_topic_count',
-                   'create_time_x', 'update_time_x', 'genre_id', 'extra_contents', 'tag', 'is_vote', 'vote',
+                   'update_time_x', 'genre_id', 'extra_contents', 'tag', 'is_vote', 'vote',
                    'sort', 'star_num',
                    'topic_num', 'last_pick_time', 'pick_count', 'uv_y', 'pv', 'status_y',
                    'btime', 'etime', 'clock_id', 'weight_y', 'tool_entrance',
                    'tool_entrances', 'online_time_y', 'create_time_y', 'update_time_y'], axis=1)
-df1 = df1.rename(columns={'title_x': 'content_title', 'title_y': 'topic_title'})
+df1 = df1.rename(columns={'title_x': 'content_title', 'title_y': 'topic_title', 'create_time_x': 'create_time'})
 
 df = df1[['id', 'content_title', 'desc', 'topic_id', 'topic_title', 'introduction', 'praise_count', 'reply_count',
           'forward_count']]
@@ -106,7 +106,6 @@ df3['follow'] = df3['follow'].fillna(0)
 df3['follow'] = df3['follow'].replace(0, 'neg')
 df3['follow'].value_counts()
 
-
 df3['event_data'] = df3['event_data'].apply(json.loads)
 
 
@@ -123,7 +122,6 @@ df3['event_data'] = pd.to_numeric(df3['event_data']).fillna('0').astype('int64')
 df3['event_data'].value_counts()
 df3['content_id'] = df3['event_data']
 df3 = df3.sort_values(by=['user_id', 'created_at'], ascending=True)
-
 
 df4 = df3[df3['follow'] != 'neg']
 df4['inter_list'] = pd.NA
