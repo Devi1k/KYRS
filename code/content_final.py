@@ -45,7 +45,7 @@ df1 = concat.drop(['group_id', 'user_id', 'type', 'topic_type',
 df1 = df1.rename(columns={'title_x': 'content_title', 'title_y': 'topic_title', 'create_time_x': 'create_time'})
 
 df = df1[['id', 'content_title', 'desc', 'topic_id', 'topic_title', 'introduction', 'praise_count', 'reply_count',
-          'forward_count']]
+          'forward_count', 'create_time']]
 del df1, content, topic
 gc.collect()
 
