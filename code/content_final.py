@@ -32,7 +32,7 @@ concat = pd.merge(content, topic, on='topic_id', how='left')
 df1 = concat.drop(['group_id', 'user_id', 'type', 'topic_type',
                    'status_x', 'common_praise_count',
                    'hug_count', 'touch_count', 'hand_num',
-                   'reply_user_count', 'star_count', 'read_count', 'share_count', 'uv_x', 'reason', 'image', 'images',
+                   'reply_user_count', 'read_count', 'uv_x', 'reason', 'image', 'images',
                    'reply_time',
                    'top_time', 'weight_x', 'week_weight', 'month_weight', 'hot_weight',
                    'is_show', 'is_plan', 'biz_content', 'online_time_x', 'pick_time',
@@ -41,13 +41,16 @@ df1 = concat.drop(['group_id', 'user_id', 'type', 'topic_type',
                    'sort', 'star_num',
                    'topic_num', 'last_pick_time', 'pick_count', 'uv_y', 'pv', 'status_y',
                    'btime', 'etime', 'clock_id', 'weight_y', 'tool_entrance',
-                   'tool_entrances', 'online_time_y', 'create_time_y', 'update_time_y'], axis=1)
-df1 = df1.rename(columns={'title_x': 'content_title', 'title_y': 'topic_title', 'create_time_x': 'create_time'})
+                   'tool_entrances', 'online_time_y', 'update_time_y'], axis=1)
+df1 = df1.rename(columns={'title_x': 'content_title', 'title_y': 'topic_title', 'create_time_x': 'content_create_time',
+                          'create_time_y': 'topic_create_time'})
 
 df = df1[['id', 'content_title', 'desc', 'topic_id', 'topic_title', 'introduction', 'praise_count', 'reply_count',
-          'forward_count', 'create_time']]
+          'forward_count', 'star_count', 'share_count', 'content_create_time', 'topic_create_time']]
 del df1, content, topic
 gc.collect()
+
+logger.info(df.dtypes)
 
 
 def process1(desc):
