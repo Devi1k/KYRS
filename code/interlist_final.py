@@ -1,11 +1,12 @@
 import gc
 import json
-import logging
 import os
 import time
 from functools import reduce
 
 import pandas as pd
+
+from logger import Logger
 
 data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
@@ -13,16 +14,10 @@ if not os.path.exists(data_path):
     os.mkdir(data_path)
 if not os.path.exists(output_path):
     os.mkdir(output_path)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("interlist_final")
-handler1 = logging.FileHandler("base-log.log")
-handler1.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s|%(name)-12s+ %(levelname)-8s++%(message)s')
-handler1.setFormatter(formatter)
-logger.addHandler(handler1)
 
-logger.info(data_path)
-logger.info(output_path)
+log = Logger().getLogger()
+log.info(data_path)
+log.info(output_path)
 user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',
                        header=0)
 df1 = user_act.drop(labels=['id',
@@ -65,7 +60,7 @@ gbr = df1.groupby('user_id')  # 用分组函数groupby()进行数据的分组，
 df_neg = df1[df1['follow'] == 'neg']
 df_pos = df1[df1['follow'] != 'neg']
 
-logger.info('-' * 5 + 'process sample' + '-' * 5)
+log.info('-' * 5 + 'process sample' + '-' * 5)
 
 df_pos.drop_duplicates(subset=['user_id', 'content_id', 'follow'], keep='last', inplace=True)
 df_neg.drop_duplicates(subset=['user_id', 'content_id'], keep='last', inplace=True)
@@ -144,24 +139,24 @@ def de_duplicate_detail(flag, user_id, desc, detail):
         return detail
 
 
-logger.info('-' * 5 + 'process comment' + '-' * 5)
+log.info('-' * 5 + 'process comment' + '-' * 5)
 
 df_final['comment'] = df_final.apply(
     lambda row: de_duplicate_comment(row['rep'], row['user_id'], row['desc'], row['comment']), axis=1)
-logger.info('-' * 5 + 'process forward' + '-' * 5)
+log.info('-' * 5 + 'process forward' + '-' * 5)
 
 df_final['forward'] = df_final.apply(
     lambda row: de_duplicate_forward(row['rep'], row['user_id'], row['desc'], row['forward']), axis=1)
-logger.info('-' * 5 + 'process thumb' + '-' * 5)
+log.info('-' * 5 + 'process thumb' + '-' * 5)
 
 df_final['thumb'] = df_final.apply(
     lambda row: de_duplicate_thumb(row['rep'], row['user_id'], row['desc'], row['thumb']), axis=1)
-logger.info('-' * 5 + 'process detail' + '-' * 5)
+log.info('-' * 5 + 'process detail' + '-' * 5)
 
 df_final['detail'] = df_final.apply(
     lambda row: de_duplicate_detail(row['rep'], row['user_id'], row['desc'], row['detail']), axis=1)
 end = time.time()
-logger.info('count cost' + str(end - start))
+log.info('count cost' + str(end - start))
 df_final_pos = df_final[df_final['follow'] != 'neg']
 df_final_pos.drop_duplicates(subset=['user_id', 'desc'], keep='last', inplace=True)
 
@@ -171,7 +166,7 @@ df_finalf = pd.concat([df_final_pos, df_final_neg])
 df_finalf.sort_values(by=['user_id', 'created_at'], ascending=True)
 
 df_finalf.drop(labels=['follow', 'created_at', 'rep'], axis=1, inplace=True)
-logger.info('-' * 5 + 'process data type' + '-' * 5)
+log.info('-' * 5 + 'process data type' + '-' * 5)
 
 df_finalf['topic_id'] = df_finalf['topic_id'].fillna('0').astype('int64')
 df_finalf['genre_id'] = df_finalf['genre_id'].fillna('0').astype('int64')
@@ -195,7 +190,7 @@ df2 = df1[df1['follow'] != 'neg']
 # df2[df2['user_id']==1633329256893853]
 
 
-logger.info('-' * 5 + 'process content list' + '-' * 5)
+log.info('-' * 5 + 'process content list' + '-' * 5)
 df2['content_list'] = pd.NA
 
 
@@ -223,95 +218,5 @@ df2_ = df2[['user_id', 'content_list', 'content_num']]
 
 df_finalf.to_csv(os.path.join(output_path, 'content_with_topiccnt.txt'), sep='\t', encoding='utf-8', index=False)
 df2_.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
-logger.info(df_finalf.dtypes)
-logger.info(df2_.dtypes)
-logger.info('-' * 5 + 'process merge & split' + '-' * 5)
-
-df_inter1 = pd.merge(df_finalf, df2_, on='user_id', how='left')
-del df_final, df_final_neg, df_final_pos, df2
-gc.collect()
-logger.info(df_inter1.dtypes)
-bt1 = df_inter1[df_inter1['content_num'] > 1]
-bt2 = df_inter1[df_inter1['content_num'] > 2]
-bt3 = df_inter1[df_inter1['content_num'] > 3]
-bt4 = df_inter1[df_inter1['content_num'] > 4]
-bt5 = df_inter1[df_inter1['content_num'] > 5]
-
-bt1.to_csv(os.path.join(output_path, 'bt1.txt'), sep='\t', encoding='utf-8', index=False)
-bt2.to_csv(os.path.join(output_path, 'bt2.txt'), sep='\t', encoding='utf-8', index=False)
-bt3.to_csv(os.path.join(output_path, 'bt3.txt'), sep='\t', encoding='utf-8', index=False)
-bt4.to_csv(os.path.join(output_path, 'bt4.txt'), sep='\t', encoding='utf-8', index=False)
-bt5.to_csv(os.path.join(output_path, 'bt5.txt'), sep='\t', encoding='utf-8', index=False)
-
-
-
-
-def split_dataset(data):
-    train_ratio = 0.8
-    dev_ratio = 0.1
-    train_length = int(len(data) * train_ratio)
-    dev_length = int(len(data) * dev_ratio)
-    train = data[:train_length]
-    train = train.drop(
-        labels=['content_list', 'content_num'], axis=1)
-    dev = data[train_length:train_length + dev_length]
-    dev = dev.drop(
-        labels=['content_list', 'content_num'], axis=1)
-    test = data[train_length + dev_length:]
-    test = test.drop(
-        labels=['desc', 'topic_id', 'genre_id', 'introduction', 'comment', 'forward', 'thumb', 'detail',
-                'neg',  'content_num'], axis=1)
-    test.drop_duplicates(subset=['user_id'],inplace=True)
-    return train, dev, test
-
-
-train_list = []
-dev_list = []
-test_list = []
-
-train_bt1, dev_bt1, test_bt1 = split_dataset(bt1)
-train_bt2, dev_bt2, test_bt2 = split_dataset(bt2)
-train_bt3, dev_bt3, test_bt3 = split_dataset(bt3)
-train_bt4, dev_bt4, test_bt4 = split_dataset(bt4)
-train_bt5, dev_bt5, test_bt5 = split_dataset(bt5)
-
-train_bt1 = train_bt1.drop(train_bt1[train_bt1['user_id'] == train_bt1.iloc[-1]['user_id']].index)
-dev_bt1 = dev_bt1.drop(dev_bt1[dev_bt1['user_id'] == dev_bt1.iloc[0]['user_id']].index)
-test_bt1 = test_bt1.drop(test_bt1[test_bt1['user_id'] == test_bt1.iloc[0]['user_id']].index)
-
-train_bt2 = train_bt2.drop(train_bt2[train_bt2['user_id'] == train_bt2.iloc[-1]['user_id']].index)
-dev_bt2 = dev_bt2.drop(dev_bt2[dev_bt2['user_id'] == dev_bt2.iloc[0]['user_id']].index)
-test_bt2 = test_bt2.drop(test_bt2[test_bt2['user_id'] == test_bt2.iloc[0]['user_id']].index)
-
-train_bt3 = train_bt3.drop(train_bt3[train_bt3['user_id'] == train_bt3.iloc[-1]['user_id']].index)
-dev_bt3 = dev_bt3.drop(dev_bt3[dev_bt3['user_id'] == dev_bt3.iloc[0]['user_id']].index)
-test_bt3 = test_bt3.drop(test_bt3[test_bt3['user_id'] == test_bt3.iloc[0]['user_id']].index)
-
-train_bt4 = train_bt4.drop(train_bt4[train_bt4['user_id'] == train_bt4.iloc[-1]['user_id']].index)
-dev_bt4 = dev_bt4.drop(dev_bt4[dev_bt4['user_id'] == dev_bt4.iloc[0]['user_id']].index)
-test_bt4 = test_bt4.drop(test_bt4[test_bt4['user_id'] == test_bt4.iloc[0]['user_id']].index)
-
-train_bt5 = train_bt5.drop(train_bt5[train_bt5['user_id'] == train_bt5.iloc[-1]['user_id']].index)
-dev_bt5 = dev_bt5.drop(dev_bt5[dev_bt5['user_id'] == dev_bt5.iloc[0]['user_id']].index)
-test_bt5 = test_bt5.drop(test_bt5[test_bt5['user_id'] == test_bt5.iloc[0]['user_id']].index)
-
-logger.info('-' * 5 + 'export' + '-' * 5)
-train_bt1.to_csv(os.path.join(output_path, 'bt1', 'train.txt'), sep='\t', encoding='utf-8', index=False)
-dev_bt1.to_csv(os.path.join(output_path, 'bt1', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
-test_bt1.to_csv(os.path.join(output_path, 'bt1', 'test.txt'), sep='\t', encoding='utf-8', index=False)
-
-train_bt2.to_csv(os.path.join(output_path, 'bt2', 'train.txt'), sep='\t', encoding='utf-8', index=False)
-dev_bt2.to_csv(os.path.join(output_path, 'bt2', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
-test_bt2.to_csv(os.path.join(output_path, 'bt2', 'test.txt'), sep='\t', encoding='utf-8', index=False)
-
-train_bt3.to_csv(os.path.join(output_path, 'bt3', 'train.txt'), sep='\t', encoding='utf-8', index=False)
-dev_bt3.to_csv(os.path.join(output_path, 'bt3', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
-test_bt3.to_csv(os.path.join(output_path, 'bt3', 'test.txt'), sep='\t', encoding='utf-8', index=False)
-
-train_bt4.to_csv(os.path.join(output_path, 'bt4', 'train.txt'), sep='\t', encoding='utf-8', index=False)
-dev_bt4.to_csv(os.path.join(output_path, 'bt4', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
-test_bt4.to_csv(os.path.join(output_path, 'bt4', 'test.txt'), sep='\t', encoding='utf-8', index=False)
-
-train_bt5.to_csv(os.path.join(output_path, 'bt5', 'train.txt'), sep='\t', encoding='utf-8', index=False)
-dev_bt5.to_csv(os.path.join(output_path, 'bt5', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
-test_bt5.to_csv(os.path.join(output_path, 'bt5', 'test.txt'), sep='\t', encoding='utf-8', index=False)
+log.info(df_finalf.dtypes)
+log.info(df2_.dtypes)
