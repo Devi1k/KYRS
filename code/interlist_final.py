@@ -18,7 +18,7 @@ if not os.path.exists(output_path):
 log = Logger("inter").getLogger()
 log.info(data_path)
 log.info(output_path)
-user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',
+user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', encoding='utf-8',
                        header=0)
 df1 = user_act.drop(labels=['id',
                             'device_id', 'idfa', 'os', 'os_version', 'version', 'system', 'platform', 'log_id',

@@ -18,8 +18,8 @@ log = Logger("content").getLogger()
 log.info(data_path)
 log.info(output_path)
 warnings.filterwarnings("ignore")
-content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
-topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', encoding='utf-8', header=0)
+topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', encoding='utf-8', header=0)
 content.rename(columns={'subject_id': 'topic_id'}, inplace=True)
 topic.rename(columns={'id': 'topic_id'}, inplace=True)
 concat = pd.merge(content, topic, on='topic_id', how='left')
@@ -88,7 +88,7 @@ df['topic_praise_count'] = df.apply(lambda row: count_praise(row['topic_id']), a
 df['topic_reply_count'] = df.apply(lambda row: count_reply(row['topic_id']), axis=1)
 df['topic_forward_count'] = df.apply(lambda row: count_forward(row['topic_id']), axis=1)
 log.info('-' * 5 + 'process event_id' + '-' * 5)
-user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',
+user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', encoding='utf-8',
                        header=0)
 df3 = user_act.drop(labels=['id',
                             'device_id', 'idfa', 'os', 'os_version', 'version', 'system', 'platform', 'log_id',
