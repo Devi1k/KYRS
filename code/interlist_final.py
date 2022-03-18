@@ -8,21 +8,24 @@ import pandas as pd
 
 from logger import Logger
 
-data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', '0315')
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
 if not os.path.exists(data_path):
     os.mkdir(data_path)
 if not os.path.exists(output_path):
     os.mkdir(output_path)
 
-log = Logger().getLogger()
+log = Logger("content").getLogger()
 log.info(data_path)
 log.info(output_path)
 user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',
                        header=0)
 df1 = user_act.drop(labels=['id',
-                            'device_id', 'os', 'os_version', 'version', 'system', 'platform', 'pg_short_url',
-                            'log_time', 'cal_dt', 'duration', 'log_id'], axis=1)
+                            'device_id', 'idfa', 'os', 'os_version', 'version', 'system', 'platform', 'log_id',
+                            'base_uri', 'pg_short_url',
+                            'log_time', 'cal_dt', 'os_p', 'url_org', 'phase', 'pg_url'], axis=1)
+del user_act
+gc.collect()
 df1.loc[((df1.event_id == 254) | (df1.event_id == 248)), 'follow'] = 'thumb'
 df1.loc[((df1.event_id == 257) | (df1.event_id == 249)), 'follow'] = 'comment'
 df1.loc[((df1.event_id == 258) | (df1.event_id == 256)), 'follow'] = 'forward'
@@ -59,7 +62,37 @@ gbr = df1.groupby('user_id')  # 用分组函数groupby()进行数据的分组，
 
 df_neg = df1[df1['follow'] == 'neg']
 df_pos = df1[df1['follow'] != 'neg']
+df2 = df1[df1['follow'] != 'neg']
+# df2[df2['user_id']==1633329256893853]
+del df1
+gc.collect()
 
+log.info('-' * 5 + 'process content list' + '-' * 5)
+df2['content_list'] = pd.NA
+
+
+def count_content_list(user_id):
+    inter = list(df2.loc[(df2.user_id == user_id), 'content_id'])
+    func = lambda x, y: x if y in x else x + [y]
+    list1 = reduce(func, [[], ] + inter)
+    content_list = map(lambda x: str(x), list1)
+    str1 = ",".join(list(content_list))
+    return str1
+
+
+def lent(data):
+    try:
+        list = data.split(",")
+        return len(list)
+    except AttributeError:
+        return 0
+
+
+df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
+df2['content_num'] = df2['content_list'].apply(lent)
+
+df2_ = df2[['user_id', 'content_list', 'content_num']]
+df2_.drop_duplicates(subset=['user_id'], keep='last', inplace=True)
 log.info('-' * 5 + 'process sample' + '-' * 5)
 
 df_pos.drop_duplicates(subset=['user_id', 'content_id', 'follow'], keep='last', inplace=True)
@@ -186,36 +219,7 @@ def process1(desc):
 df_finalf['desc'] = df_finalf['desc'].apply(process1)
 df_finalf['introduction'] = df_finalf['introduction'].apply(process1)
 
-df2 = df1[df1['follow'] != 'neg']
-# df2[df2['user_id']==1633329256893853]
 
-
-log.info('-' * 5 + 'process content list' + '-' * 5)
-df2['content_list'] = pd.NA
-
-
-def count_content_list(user_id):
-    inter = list(df2.loc[(df2.user_id == user_id), 'content_id'])
-    func = lambda x, y: x if y in x else x + [y]
-    list1 = reduce(func, [[], ] + inter)
-    content_list = map(lambda x: str(x), list1)
-    str1 = ",".join(list(content_list))
-    return str1
-
-
-def lent(data):
-    try:
-        list = data.split(",")
-        return len(list)
-    except AttributeError:
-        return 0
-
-
-df2['content_list'] = df2.apply(lambda row: count_content_list(row['user_id']), axis=1)
-df2['content_num'] = df2['content_list'].apply(lent)
-
-df2_ = df2[['user_id', 'content_list', 'content_num']]
-df2_.drop_duplicates(subset=['user_id'], keep='last', inplace=True)
 df_finalf.to_csv(os.path.join(output_path, 'content_with_topiccnt.txt'), sep='\t', encoding='utf-8', index=False)
 df2_.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
 log.info(df_finalf.dtypes)
