@@ -11,7 +11,7 @@ if not os.path.exists(data_path):
 if not os.path.exists(output_path):
     os.mkdir(output_path)
 
-log = Logger("content").getLogger()
+log = Logger("user").getLogger()
 
 user_act = pd.read_csv(os.path.join(data_path, '用户.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 df = pd.DataFrame(user_act, columns=['user_id', 'sex', 'zan_count'])

@@ -15,7 +15,7 @@ if not os.path.exists(data_path):
 if not os.path.exists(output_path):
     os.mkdir(output_path)
 
-log = Logger("content").getLogger()
+log = Logger("inter").getLogger()
 log.info(data_path)
 log.info(output_path)
 user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', error_bad_lines=False, encoding='utf-8',

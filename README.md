@@ -14,4 +14,11 @@ typedict_inter = {'user_id': int, 'topic_id': int, 'desc': object,
                   'detail': int,
                   'neg': int, 'content_list': object, 'content_num': object}
 typedict_user = {'user_id': int, 'sex': int, 'zan_count': int}
+
+```
+
+```shell
+nohup python interlist_final.py > inter.log 2>&1
+nohup python content_final.py > content.log 2>&1
+nohup python user_final.py > user.log 2>&1
 ```
