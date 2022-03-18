@@ -13,6 +13,6 @@ if not os.path.exists(output_path):
 
 log = Logger("user").getLogger()
 
-user_act = pd.read_csv(os.path.join(data_path, '用户.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
-df = pd.DataFrame(user_act, columns=['user_id', 'sex', 'zan_count'])
+user = pd.read_csv(os.path.join(data_path, '用户.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+df = pd.DataFrame(user, columns=['id', 'sex', 'zan_count'])
 df.to_csv(os.path.join(output_path, 'user.txt'), sep='\t', encoding='utf-8', index=False)
