@@ -15,4 +15,7 @@ log = Logger("user").getLogger()
 
 user = pd.read_csv(os.path.join(data_path, '用户.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 df = pd.DataFrame(user, columns=['id', 'sex', 'zan_count'])
+df['id'] = df['id'].astype('int64')
+df['sex'] = df['sex'].astype('int64')
+df['zan_count'] = df['zan_count'].astype('int64')
 df.to_csv(os.path.join(output_path, 'user.txt'), sep='\t', encoding='utf-8', index=False)
