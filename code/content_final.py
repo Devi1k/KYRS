@@ -87,6 +87,10 @@ def count_forward(topic_id):
 df['topic_praise_count'] = df.apply(lambda row: count_praise(row['topic_id']), axis=1)
 df['topic_reply_count'] = df.apply(lambda row: count_reply(row['topic_id']), axis=1)
 df['topic_forward_count'] = df.apply(lambda row: count_forward(row['topic_id']), axis=1)
+df.to_csv(os.path.join(output_path, 'content_raw.txt'), sep='\t', encoding='utf-8', index=False)
+log.info(df.dtypes)
+del df
+gc.collect()
 log.info('-' * 5 + 'process event_id' + '-' * 5)
 user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', encoding='utf-8',
                        header=0)
@@ -112,10 +116,10 @@ df3['event_data'] = df3['event_data'].apply(json.loads)
 
 def process(event_data):
     if not isinstance(event_data, dict):
-        # log.info('list')
+        # print('list')
         return 0
     if 'content_id' in event_data.keys():
-        return event_data['content_id']
+        return int(event_data['content_id'])
 
 
 df3['event_data'] = df3['event_data'].apply(process)
@@ -125,9 +129,9 @@ df3['content_id'] = df3['event_data']
 df3 = df3.sort_values(by=['user_id', 'created_at'], ascending=True)
 
 df4 = df3[df3['follow'] != 'neg']
-df4['inter_list'] = pd.NA
 del df3
 gc.collect()
+df4['inter_list'] = pd.NA
 
 log.info('-' * 5 + 'process inter_list' + '-' * 5)
 
@@ -146,11 +150,18 @@ df4.drop_duplicates(subset=['content_id'], keep='first', inplace=True)
 df4 = df4.drop(labels=['event_id', 'event_data', 'follow', 'user_id', 'created_at'], axis=1)
 
 df4.to_csv(os.path.join(output_path, 'inter_list.txt'), sep='\t', encoding='utf-8', index=False)
-df.to_csv(os.path.join(output_path, 'content_raw.txt'), sep='\t', encoding='utf-8', index=False)
+
 log.info(df4.dtypes)
-log.info(df.dtypes)
 
 log.info('-' * 5 + 'process merge' + '-' * 5)
 df_filter = df4[df4['content_id'] != 0]
+typedict_content = {'content_id': int, 'content_title': object, 'desc': object, 'topic_id': int, 'topic_title': object,
+                    'introduction': object, 'praise_count': int, 'reply_count': int,
+                    'forward_count': int,
+                    'topic_praise_count': int,
+                    'topic_reply_count': int,
+                    'topic_forward_count': int, 'inter_list': object}
+df = pd.read_csv(os.path.join(output_path, 'content_raw.txt'), sep='\t', encoding='utf-8',
+                 dtype=typedict_content)
 df7 = pd.merge(df, df_filter, on='content_id', how='left')
 df7.to_csv(os.path.join(output_path, 'content.txt'), sep='\t', encoding='utf-8', index=False)

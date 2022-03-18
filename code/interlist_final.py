@@ -26,6 +26,7 @@ df1 = user_act.drop(labels=['id',
                             'log_time', 'cal_dt', 'os_p', 'url_org', 'phase', 'pg_url'], axis=1)
 del user_act
 gc.collect()
+log.info('-' * 5 + 'load finish' + str(len(df1)) + '-' * 5)
 df1.loc[((df1.event_id == 254) | (df1.event_id == 248)), 'follow'] = 'thumb'
 df1.loc[((df1.event_id == 257) | (df1.event_id == 249)), 'follow'] = 'comment'
 df1.loc[((df1.event_id == 258) | (df1.event_id == 256)), 'follow'] = 'forward'
@@ -45,27 +46,21 @@ def process(event_data):
         # print('list')
         return 0
     if 'content_id' in event_data.keys():
-        return event_data['content_id']
+        try:
+            return int(event_data['content_id'])
+        except ValueError:
+            return 0
 
 
 df1['event_data'] = df1['event_data'].apply(process)
 df1['event_data'] = pd.to_numeric(df1['event_data']).fillna('0').astype('int64')
-df1['event_data'].value_counts()
 df1['content_id'] = df1['event_data']
 
 df1 = df1.sort_values(by=['user_id', 'created_at'], ascending=True)
 
-content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
-topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
-
-gbr = df1.groupby('user_id')  # 用分组函数groupby()进行数据的分组，分组依据为'TYPE'这一属性
-
-df_neg = df1[df1['follow'] == 'neg']
-df_pos = df1[df1['follow'] != 'neg']
 df2 = df1[df1['follow'] != 'neg']
 # df2[df2['user_id']==1633329256893853]
-del df1
-gc.collect()
+
 
 log.info('-' * 5 + 'process content list' + '-' * 5)
 df2['content_list'] = pd.NA
@@ -93,7 +88,16 @@ df2['content_num'] = df2['content_list'].apply(lent)
 
 df2_ = df2[['user_id', 'content_list', 'content_num']]
 df2_.drop_duplicates(subset=['user_id'], keep='last', inplace=True)
+log.info(df2_.dtypes)
+df2_.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
+del df2, df2_
+gc.collect()
 log.info('-' * 5 + 'process sample' + '-' * 5)
+df_neg = df1[df1['follow'] == 'neg']
+df_pos = df1[df1['follow'] != 'neg']
+
+del df1
+gc.collect()
 
 df_pos.drop_duplicates(subset=['user_id', 'content_id', 'follow'], keep='last', inplace=True)
 df_neg.drop_duplicates(subset=['user_id', 'content_id'], keep='last', inplace=True)
@@ -119,7 +123,8 @@ df_neg_sample = df_neg.groupby('user_id').apply(typicalsamling, df_sample)
 frames = [df_pos, df_neg_sample]
 result = pd.concat(frames)
 result = result.sort_values(by=['user_id', 'created_at'], ascending=True)
-
+content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
+topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 content.rename(columns={'subject_id': 'topic_id', 'id': 'content_id'}, inplace=True)
 content = content[['content_id', 'topic_id', 'desc']]
 topic = topic[['topic_id', 'genre_id', 'introduction']]
@@ -219,13 +224,12 @@ def process1(desc):
 df_finalf['desc'] = df_finalf['desc'].apply(process1)
 df_finalf['introduction'] = df_finalf['introduction'].apply(process1)
 
-
 df_finalf.to_csv(os.path.join(output_path, 'content_with_topiccnt.txt'), sep='\t', encoding='utf-8', index=False)
-df2_.to_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8', index=False)
 log.info(df_finalf.dtypes)
-log.info(df2_.dtypes)
 log.info('-' * 5 + 'process merge & split' + '-' * 5)
-
+typedict_content_list = {'user_id': int, 'content_list': object, 'content_num': object}
+df2_ = pd.read_csv(os.path.join(output_path, 'content_with_interlist.txt'), sep='\t', encoding='utf-8',
+                   dtype=typedict_content_list)
 df_inter1 = pd.merge(df_finalf, df2_, on='user_id', how='left')
 # log.info(df_inter1['content_num'].dtype)
 
