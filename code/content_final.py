@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore")
 content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 content.rename(columns={'subject_id': 'topic_id'}, inplace=True)
+topic.rename(columns={'id': 'topic_id'}, inplace=True)
 concat = pd.merge(content, topic, on='topic_id', how='left')
 # df1 = concat.drop(['group_id',  'type', 'topic_type','follow_sort_time','is_subject_follow'
 #                    'status_x', 'common_praise_count',
