@@ -19,10 +19,10 @@ log = Logger("inter").getLogger()
 log.info(data_path)
 log.info(output_path)
 inter_dict = {'user_id': int, 'event_id': int, 'event_data': object, 'created_at': int}
-df1 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
-                  dtype=inter_dict)
-# df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
+# df1 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
 #                   dtype=inter_dict)
+df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
+                  dtype=inter_dict)
 log.info('-' * 5 + 'load finish' + str(len(df1)) + '-' * 5)
 df1.loc[((df1.event_id == 254) | (df1.event_id == 248)), 'follow'] = 'thumb'
 df1.loc[((df1.event_id == 257) | (df1.event_id == 249)), 'follow'] = 'comment'
@@ -314,3 +314,4 @@ test_bt4.to_csv(os.path.join(output_path, 'bt4', 'test.txt'), sep='\t', encoding
 train_bt5.to_csv(os.path.join(output_path, 'bt5', 'train.txt'), sep='\t', encoding='utf-8', index=False)
 dev_bt5.to_csv(os.path.join(output_path, 'bt5', 'dev.txt'), sep='\t', encoding='utf-8', index=False)
 test_bt5.to_csv(os.path.join(output_path, 'bt5', 'test.txt'), sep='\t', encoding='utf-8', index=False)
+log.info('-' * 5 + 'finish all' + '-' * 5)

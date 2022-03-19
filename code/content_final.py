@@ -94,10 +94,10 @@ gc.collect()
 log.info('-' * 5 + 'process event_id' + '-' * 5)
 
 inter_dict = {'user_id': int, 'event_id': int, 'event_data': object, 'created_at': int}
-df3 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
-                  dtype=inter_dict)
-# df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
+# df3 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
 #                   dtype=inter_dict)
+df3 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
+                  dtype=inter_dict)
 df3.loc[((df3.event_id == 254) | (df3.event_id == 248)), 'follow'] = 'thumb'
 df3.loc[((df3.event_id == 257) | (df3.event_id == 249)), 'follow'] = 'comment'
 df3.loc[((df3.event_id == 258) | (df3.event_id == 256)), 'follow'] = 'forward'
@@ -163,3 +163,4 @@ df = pd.read_csv(os.path.join(output_path, 'content_raw.txt'), sep='\t', encodin
                  dtype=typedict_content)
 df7 = pd.merge(df, df_filter, on='content_id', how='left')
 df7.to_csv(os.path.join(output_path, 'content.txt'), sep='\t', encoding='utf-8', index=False)
+log.info('-' * 5 + 'finish all' + '-' * 5)
