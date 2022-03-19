@@ -18,14 +18,11 @@ if not os.path.exists(output_path):
 log = Logger("inter").getLogger()
 log.info(data_path)
 log.info(output_path)
-user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', encoding='utf-8',
-                       header=0)
-df1 = user_act.drop(labels=['id',
-                            'device_id', 'idfa', 'os', 'os_version', 'version', 'system', 'platform', 'log_id',
-                            'base_uri', 'pg_short_url',
-                            'log_time', 'cal_dt', 'os_p', 'url_org', 'phase', 'pg_url'], axis=1)
-del user_act
-gc.collect()
+inter_dict = {'user_id': int, 'event_id': int, 'event_data': object, 'created_at': int}
+df1 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
+                  dtype=inter_dict)
+# df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
+#                   dtype=inter_dict)
 log.info('-' * 5 + 'load finish' + str(len(df1)) + '-' * 5)
 df1.loc[((df1.event_id == 254) | (df1.event_id == 248)), 'follow'] = 'thumb'
 df1.loc[((df1.event_id == 257) | (df1.event_id == 249)), 'follow'] = 'comment'
@@ -33,7 +30,6 @@ df1.loc[((df1.event_id == 258) | (df1.event_id == 256)), 'follow'] = 'forward'
 df1.loc[((df1.event_id == 262) | (df1.event_id == 263)), 'follow'] = 'detail'
 df1.loc[((df1.event_id == 264) | (df1.event_id == 310)), 'follow'] = 'detail'
 df1['follow'] = df1['follow'].fillna(0)
-# user_new['follow'] = user_new['follow'].fillna(0)
 df1['follow'] = df1['follow'].replace(0, 'neg')
 df1['follow'].value_counts()
 
@@ -53,7 +49,7 @@ def process(event_data):
 
 
 df1['event_data'] = df1['event_data'].apply(process)
-df1['event_data'] = pd.to_numeric(df1['event_data']).fillna('0').astype('int64')
+df1 = df1.dropna()
 df1['content_id'] = df1['event_data']
 
 df1 = df1.sort_values(by=['user_id', 'created_at'], ascending=True)
@@ -205,9 +201,9 @@ df_finalf.sort_values(by=['user_id', 'created_at'], ascending=True)
 
 df_finalf.drop(labels=['follow', 'created_at', 'rep'], axis=1, inplace=True)
 log.info('-' * 5 + 'process data type' + '-' * 5)
-
-df_finalf['topic_id'] = df_finalf['topic_id'].fillna('0').astype('int64')
-df_finalf['genre_id'] = df_finalf['genre_id'].fillna('0').astype('int64')
+df_final = df_final.dropna()
+df_finalf['topic_id'] = df_finalf['topic_id'].astype('int64')
+df_finalf['genre_id'] = df_finalf['genre_id'].astype('int64')
 df_finalf['comment'] = df_finalf['comment'].astype('int64')
 df_finalf['forward'] = df_finalf['forward'].astype('int64')
 df_finalf['thumb'] = df_finalf['thumb'].astype('int64')
