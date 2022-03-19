@@ -117,7 +117,10 @@ def process(event_data):
         # print('list')
         return 0
     if 'content_id' in event_data.keys():
-        return int(event_data['content_id'])
+        try:
+            return int(event_data['content_id'])
+        except ValueError:
+            return 0
 
 
 df3['event_data'] = df3['event_data'].apply(process)
