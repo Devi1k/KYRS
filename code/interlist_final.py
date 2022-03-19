@@ -122,7 +122,7 @@ result = result.sort_values(by=['user_id', 'created_at'], ascending=True)
 content = pd.read_csv(os.path.join(data_path, '帖子.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 topic = pd.read_csv(os.path.join(data_path, '话题.csv'), sep=',', error_bad_lines=False, encoding='utf-8', header=0)
 content.rename(columns={'subject_id': 'topic_id', 'id': 'content_id'}, inplace=True)
-content.rename(columns={'id': 'topic_id'}, inplace=True)
+topic.rename(columns={'id': 'topic_id'}, inplace=True)
 content = content[['content_id', 'topic_id', 'desc']]
 topic = topic[['topic_id', 'genre_id', 'introduction']]
 add_content = pd.merge(result, content, on='content_id', how='left')
