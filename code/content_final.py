@@ -92,14 +92,12 @@ log.info(df.dtypes)
 del df
 gc.collect()
 log.info('-' * 5 + 'process event_id' + '-' * 5)
-user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', encoding='utf-8',
-                       header=0)
-df3 = user_act.drop(labels=['id',
-                            'device_id', 'idfa', 'os', 'os_version', 'version', 'system', 'platform', 'log_id',
-                            'base_uri', 'pg_short_url',
-                            'log_time', 'cal_dt', 'os_p', 'url_org', 'phase', 'pg_url'], axis=1)
-del user_act
-gc.collect()
+
+inter_dict = {'user_id': int, 'event_id': int, 'event_data': object, 'created_at': int}
+df3 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
+                  dtype=inter_dict)
+# df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
+#                   dtype=inter_dict)
 df3.loc[((df3.event_id == 254) | (df3.event_id == 248)), 'follow'] = 'thumb'
 df3.loc[((df3.event_id == 257) | (df3.event_id == 249)), 'follow'] = 'comment'
 df3.loc[((df3.event_id == 258) | (df3.event_id == 256)), 'follow'] = 'forward'
