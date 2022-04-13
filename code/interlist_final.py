@@ -8,7 +8,7 @@ import pandas as pd
 
 from logger import Logger
 
-data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', '0315')
+data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', '0330')
 output_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset')
 if not os.path.exists(data_path):
     os.mkdir(data_path)
@@ -18,11 +18,17 @@ if not os.path.exists(output_path):
 log = Logger("inter").getLogger()
 log.info(data_path)
 log.info(output_path)
-inter_dict = {'user_id': int, 'event_id': int, 'event_data': object, 'created_at': int}
-# df1 = pd.read_csv(os.path.join(data_path, 'useract5k.txt'), sep='\t', encoding='utf-8',
+# inter_dict = {'user_id': int, 'event_id': int, 'event_data': object, 'created_at': int}
+user_act = pd.read_csv(os.path.join(data_path, 'user_action.csv'), sep=',', encoding='utf-8',
+                       header=0)
+df1 = user_act.drop(labels=['id',
+                            'device_id', 'idfa', 'os', 'os_version', 'version', 'system', 'platform', 'log_id',
+                            'base_uri', 'pg_short_url',
+                            'log_time', 'cal_dt', 'os_p', 'url_org', 'phase', 'pg_url'], axis=1)
+# df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
 #                   dtype=inter_dict)
-df1 = pd.read_csv(os.path.join(data_path, 'useract_all.txt'), sep='\t', encoding='utf-8',
-                  dtype=inter_dict)
+del user_act
+gc.collect()
 log.info('-' * 5 + 'load finish' + str(len(df1)) + '-' * 5)
 df1.loc[((df1.event_id == 254) | (df1.event_id == 248)), 'follow'] = 'thumb'
 df1.loc[((df1.event_id == 257) | (df1.event_id == 249)), 'follow'] = 'comment'
@@ -200,7 +206,7 @@ df_final_neg = df_final[df_final['follow'] == 'neg']
 df_finalf = pd.concat([df_final_pos, df_final_neg])
 df_finalf.sort_values(by=['user_id', 'created_at'], ascending=True)
 
-df_finalf.drop(labels=['follow', 'created_at', 'rep'], axis=1, inplace=True)
+df_finalf.drop(labels=['follow', 'rep'], axis=1, inplace=True)
 log.info('-' * 5 + 'process data type' + '-' * 5)
 df_final = df_final.dropna()
 df_finalf['topic_id'] = df_finalf['topic_id'].fillna('0').astype('int64')
@@ -257,9 +263,7 @@ def split_dataset(data):
     dev = dev.drop(
         labels=['content_list', 'content_num'], axis=1)
     test = data[train_length + dev_length:]
-    test = test.drop(
-        labels=['desc', 'topic_id', 'genre_id', 'introduction', 'comment', 'forward', 'thumb', 'detail',
-                'neg', 'content_num'], axis=1)
+    test = test[['user_id', 'content_list']]
     test.drop_duplicates(subset=['user_id'], inplace=True)
     return train, dev, test
 
